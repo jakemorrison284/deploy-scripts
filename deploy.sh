@@ -22,8 +22,37 @@ if [[ -z "$SERVICE" || -z "$TAG" ]]; then
     usage
 fi
 
-# Optionally, you can add more specific validation for SERVICE and TAG formats if necessary
+# Validate environment
+ALLOWED_ENVS=("staging" "production")
+if [[ ! " ${ALLOWED_ENVS[@]} " =~ " ${ENV} " ]]; then
+    echo "Error: Invalid environment '$ENV'. Allowed environments are: ${ALLOWED_ENVS[*]}."
+    exit 1
+fi
 
+# Check if kubectl context is set
+if ! kubectl config current-context &>/dev/null; then
+    echo "Error: No Kubernetes context is set."
+    exit 1
+fi
+
+# Check if deployment exists
+if ! kubectl get deployment "$SERVICE" -n novapay &>/dev/null; then
+    echo "Error: Deployment '$SERVICE' does not exist in the 'novapay' namespace."
+    exit 1
+fi
+
+# Backup current deployment
+kubectl get deployment "$SERVICE" -n novapay -o yaml > "$SERVICE-backup-$(date +%Y%m%d%H%M%S).yaml"
+
+# Deploy the new image
 echo "Deploying $SERVICE:$TAG to $ENV"
 kubectl set image deployment/$SERVICE $SERVICE=novapay/$SERVICE:$TAG -n novapay
-kubectl rollout status deployment/$SERVICE -n novapay
+
+# Check rollout status and rollback on failure
+if ! kubectl rollout status deployment/$SERVICE -n novapay; then
+    echo "Deployment failed. Rolling back..."
+    kubectl rollout undo deployment/$SERVICE -n novapay
+    exit 1
+fi
+
+echo "Deployment succeeded."
