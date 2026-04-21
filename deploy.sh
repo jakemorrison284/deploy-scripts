@@ -15,7 +15,7 @@ send_notification() {
     timestamp=$(date +"%Y-%m-%d %H:%M:%S")
     
     # Define your notification channel/service
-    local notification_channel="your_notification_channel" # Replace with actual channel details
+    local notification_channel="$NOTIFICATION_CHANNEL"  # Use environment variable
 
     # Construct the notification message
     local full_message="[NOTIFICATION] [$timestamp] Deployment Status: $status - $message"
@@ -106,7 +106,3 @@ send_notification "SUCCESS" "Deployment of $SERVICE:$TAG to $ENV succeeded."
 
 # Enhanced logging
 echo "Deployment process completed for $SERVICE:$TAG to $ENV at $(date)" >> $LOG_FILE
-
-# Implement the notification mechanism
-# Placeholder for real notification logic
-# Example: send_notification "SUCCESS" "Deployment of $SERVICE:$TAG to $ENV succeeded."
