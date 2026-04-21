@@ -3,18 +3,19 @@ set -euo pipefail
 
 # Function to print usage
 usage() {
-    echo "Usage: $0 <service> <tag> [environment]"
+    echo "Usage: $0 <service> <tag> [environment] [namespace]"
     exit 1
 }
 
 # Check for the correct number of arguments
-if [ "$#" -lt 2 ] || [ "$#" -gt 3 ]; then
+if [ "$#" -lt 2 ] || [ "$#" -gt 4 ]; then
     usage
 fi
 
 SERVICE=$1
 TAG=$2
 ENV=${3:-staging}
+NAMESPACE=${4:-novapay}
 
 # Validate the SERVICE and TAG variables
 if [[ -z "$SERVICE" || -z "$TAG" ]]; then
@@ -36,22 +37,22 @@ if ! kubectl config current-context &>/dev/null; then
 fi
 
 # Check if deployment exists
-if ! kubectl get deployment "$SERVICE" -n novapay &>/dev/null; then
-    echo "Error: Deployment '$SERVICE' does not exist in the 'novapay' namespace."
+if ! kubectl get deployment "$SERVICE" -n $NAMESPACE &>/dev/null; then
+    echo "Error: Deployment '$SERVICE' does not exist in the '$NAMESPACE' namespace."
     exit 1
 fi
 
 # Backup current deployment
-kubectl get deployment "$SERVICE" -n novapay -o yaml > "$SERVICE-backup-$(date +%Y%m%d%H%M%S).yaml"
+kubectl get deployment "$SERVICE" -n $NAMESPACE -o yaml > "$SERVICE-backup-$(date +%Y%m%d%H%M%S).yaml"
 
 # Deploy the new image
 echo "Deploying $SERVICE:$TAG to $ENV"
-kubectl set image deployment/$SERVICE $SERVICE=novapay/$SERVICE:$TAG -n novapay
+kubectl set image deployment/$SERVICE $SERVICE=$NAMESPACE/$SERVICE:$TAG -n $NAMESPACE
 
 # Check rollout status and rollback on failure
-if ! kubectl rollout status deployment/$SERVICE -n novapay; then
+if ! kubectl rollout status deployment/$SERVICE -n $NAMESPACE; then
     echo "Deployment failed. Rolling back..."
-kubectl rollout undo deployment/$SERVICE -n novapay
+    kubectl rollout undo deployment/$SERVICE -n $NAMESPACE
     exit 1
 fi
 
