@@ -42,6 +42,13 @@ send_notification() {
     fi
 }
 
+# Cleanup function to run on exit
+cleanup() {
+    echo "Cleaning up temporary files..."
+    rm -f "$BACKUP_FILE" # Ensure backup files are cleaned up
+}
+trap cleanup EXIT
+
 # Check for the correct number of arguments
 if [ "$#" -lt 2 ] || [ "$#" -gt 3 ]; then
     usage
