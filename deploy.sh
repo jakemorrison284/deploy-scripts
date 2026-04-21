@@ -25,7 +25,7 @@ fi
 # Validate environment
 ALLOWED_ENVS=("staging" "production")
 if [[ ! " ${ALLOWED_ENVS[@]} " =~ " ${ENV} " ]]; then
-    echo "Error: Invalid environment '$ENV'. Allowed environments are: ${ALLOWED_ENVS[*]}."
+    echo "Error: Invalid environment '$ENV'. Allowed environments are: ${ALLOWED_ENVS[*]}.";
     exit 1
 fi
 
@@ -51,7 +51,7 @@ kubectl set image deployment/$SERVICE $SERVICE=novapay/$SERVICE:$TAG -n novapay
 # Check rollout status and rollback on failure
 if ! kubectl rollout status deployment/$SERVICE -n novapay; then
     echo "Deployment failed. Rolling back..."
-    kubectl rollout undo deployment/$SERVICE -n novapay
+kubectl rollout undo deployment/$SERVICE -n novapay
     exit 1
 fi
 
