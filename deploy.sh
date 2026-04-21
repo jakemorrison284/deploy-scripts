@@ -63,3 +63,5 @@ echo "Deployment of $SERVICE:$TAG to $ENV succeeded at $(date)" >> $LOG_FILE
 echo "Sending notification for successful deployment of $SERVICE:$TAG to $ENV"
 # Here, you would implement the actual notification logic, e.g., sending an email or a message to a webhook.
 
+# Enhanced logging
+echo "Deployment process completed for $SERVICE:$TAG to $ENV at $(date)" >> $LOG_FILE
