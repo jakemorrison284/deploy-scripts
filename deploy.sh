@@ -55,4 +55,11 @@ kubectl rollout undo deployment/$SERVICE -n novapay
     exit 1
 fi
 
-echo "Deployment succeeded."
+# Logging deployment success
+LOG_FILE="deployment.log"
+echo "Deployment of $SERVICE:$TAG to $ENV succeeded at $(date)" >> $LOG_FILE
+
+# Notification mechanism (placeholder)
+echo "Sending notification for successful deployment of $SERVICE:$TAG to $ENV"
+# Here, you would implement the actual notification logic, e.g., sending an email or a message to a webhook.
+
