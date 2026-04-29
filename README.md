@@ -30,17 +30,21 @@ To run the deployment scripts, use the following commands:
    To deploy the NovaPay application, execute the following command:  
    ```bash
    bash deploy.sh --env production
-   ```
+   ```  
    This command deploys the application in the production environment.
 
 - **Failover Process**  
    If you need to initiate a failover, run:  
    ```bash
    bash failover.sh
-   ```
+   ```  
    This script will handle the failover process as per the defined configurations.
 
-## Contribution Guidelines
+### Common Issues
+- **Issue 1**: Describe common issue and how to resolve it.
+- **Issue 2**: Describe another common issue and its resolution.
+
+### Contribution Guidelines
 We welcome contributions! Please submit a pull request or open an issue to discuss any enhancements or bug fixes.
 
 ## License
