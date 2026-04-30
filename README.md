@@ -14,6 +14,7 @@ CI/CD pipeline scripts for NovaPay deployments.
   - [Restoring PostgreSQL Database](#restoring-postgresql-database)
   - [Running Tests](#running-tests)
 - [Configuration and Environment Variables](#configuration-and-environment-variables)
+- [Runbook Links](#runbook-links)
 - [Backup Strategy Compliance](#backup-strategy-compliance)
 - [Troubleshooting](#troubleshooting)
 - [Getting Help](#getting-help)
@@ -134,6 +135,17 @@ export FAILOVER_CONFIG=/etc/failover/config.yaml
 ```
 
 For detailed configuration, see the [docs/](docs/) directory.
+
+## Runbook Links
+
+For detailed operational procedures, refer to the following runbooks located in the `runbook/` directory:
+
+- [Deployment Runbook](runbook/deployment_runbook.md) - Step-by-step instructions for deploying the NovaPay application.
+- [Failover Runbook](runbook/failover_runbook.md) - Procedures to initiate and manage failover during system failures.
+- [PostgreSQL Restore Runbook](runbook/restore_postgres_runbook.md) - Guidance on restoring PostgreSQL databases from backups.
+- [Testing Runbook](runbook/testing_runbook.md) - Instructions for running tests on backup and restore functionalities.
+
+*Note: If any of these files are missing, please coordinate with the operations team to create or update them.*
 
 ## Backup Strategy Compliance
 
