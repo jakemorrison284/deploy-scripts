@@ -14,7 +14,9 @@ LOG_FILE="restore_log_$(date +%Y%m%d_%H%M%S).log"
 log() {
     local level=$1
     local message=$2
-    echo "$(date '+%Y-%m-%d %H:%M:%S') [$level] $message" | tee -a "$LOG_FILE"
+    if [[ "$VERBOSE" == true ]] || [[ "$level" != "DEBUG" ]]; then
+        echo "$(date '+%Y-%m-%d %H:%M:%S') [$level] $message" | tee -a "$LOG_FILE"
+    fi
 }
 
 # Function to send notifications (if NOTIFY_SCRIPT is set)
@@ -22,13 +24,23 @@ notify() {
     local message=$1
     echo "$message"
     if [[ -n "$NOTIFY_SCRIPT" && -x "$NOTIFY_SCRIPT" ]]; then
-        "$NOTIFY_SCRIPT" "$message"
+        if ! "$NOTIFY_SCRIPT" "$message"; then
+            log "ERROR" "Notification script failed to send message: $message"
+        fi
     fi
 }
 
 # Function to print usage
 usage() {
     echo "Usage: $0 <database_name> <backup_file> [--checksum=<checksum>] [--dry-run] [--host=<host>] [--port=<port>] [--user=<user>] [--verbose]"
+    echo ""
+    echo "Options:"
+    echo "  --checksum=<checksum>  Specify expected sha256 checksum of the backup file for validation."
+    echo "  --dry-run             Perform a trial run with no changes made."
+    echo "  --host=<host>         Database server host (default: localhost)."
+    echo "  --port=<port>         Database server port (default: 5432)."
+    echo "  --user=<user>         Database user (default: postgres)."
+    echo "  --verbose             Enable verbose logging including debug messages."
     exit 1
 }
 
@@ -99,6 +111,16 @@ validate_backup_file() {
             log "INFO" "Backup file '$file' passed integrity check with pg_restore --list."
         fi
     fi
+}
+
+# Function to validate database connection
+validate_db_connection() {
+    if ! pg_isready -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" &> /dev/null; then
+        log "ERROR" "Database server is not ready or not reachable at $PGHOST:$PGPORT as user $PGUSER."
+        notify "Database server is not ready or not reachable at $PGHOST:$PGPORT as user $PGUSER."
+        exit 1
+    fi
+    log "INFO" "Database server is reachable at $PGHOST:$PGPORT as user $PGUSER."
 }
 
 # Function to restore a PostgreSQL database
@@ -193,9 +215,15 @@ if [[ -z "$DATABASE_NAME" ]]; then
     usage
 fi
 
+# Validate database connection before restoring
+validate_db_connection
+
 validate_backup_file "$BACKUP_FILE" "$CHECKSUM" "sha256"
 
 # Start restoration
 {
     restore_database "$DATABASE_NAME" "$BACKUP_FILE" "$DRY_RUN"
 } 2>&1 | tee -a "$LOG_FILE"
+
+# Summary output
+log "INFO" "Restore process completed. See log file: $LOG_FILE"
