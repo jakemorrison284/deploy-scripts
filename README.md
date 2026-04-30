@@ -6,54 +6,52 @@ CI/CD pipeline scripts for NovaPay deployments.
 
 This repository contains shell scripts used for deploying the NovaPay application, handling failover procedures, and managing PostgreSQL database restores. It also includes testing scripts to validate backup and restore operations. These scripts aim to streamline and automate key deployment and disaster recovery tasks.
 
+## Quick Start
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/jakemorrison284/deploy-scripts.git
+   cd deploy-scripts
+   ```
+
+2. Review prerequisites and ensure required tools are installed.
+
+3. Run the deployment or other scripts as needed (see Usage Instructions below).
+
 ## Prerequisites
 
 Before using the scripts, ensure you have the following installed on your system:
 
-- [Git](https://git-scm.com/) 
-- [Node.js](https://nodejs.org/) 
-required for some scripts (please check individual script requirements)
-- [Docker](https://www.docker.com/) 
-required if deploying within containerized environments
+- [Git](https://git-scm.com/)  
+- [Node.js](https://nodejs.org/)  
+  - Required by: `deploy.sh` (for build or deployment tasks involving Node.js)
+- [Docker](https://www.docker.com/)  
+  - Required if deploying within containerized environments using `deploy.sh`
+
+Verify the individual script headers for any additional dependencies.
 
 ## Repository Contents
 
-- `deploy.sh` 
-
- Main deployment script to deploy the NovaPay application to specified environments.
-- `failover.sh` 
-
- Script to initiate and manage failover processes in case of system failures.
-- `restore_postgres.sh` 
-
- Script to restore PostgreSQL databases from backup files.
-- `test_restore_postgres.sh` 
-
- Automated tests to validate database restore operations.
-- `restore_postgres_diff.patch` 
-
- Patch file related to the PostgreSQL restore process.
-- `release_yaml_improvements.md` 
-
- Documentation and proposals related to improving deployment YAML configurations.
-- `docs/` 
-
- Directory containing additional documentation resources.
-- `runbook/` 
-
- Directory with runbooks for operational procedures.
-- `tests/` 
-
- Directory containing test scripts and test data.
+- `deploy.sh`  
+  Main deployment script to deploy the NovaPay application to specified environments. Requires Node.js and optionally Docker.
+- `failover.sh`  
+  Script to initiate and manage failover processes in case of system failures.
+- `restore_postgres.sh`  
+  Script to restore PostgreSQL databases from backup files.
+- `test_restore_postgres.sh`  
+  Automated tests to validate database restore operations.
+- `restore_postgres_diff.patch`  
+  Patch file related to the PostgreSQL restore process.
+- `release_yaml_improvements.md`  
+  Documentation and proposals related to improving deployment YAML configurations.
+- `docs/`  
+  Directory containing additional documentation resources.
+- `runbook/`  
+  Directory with runbooks for operational procedures.
+- `tests/`  
+  Directory containing test scripts and test data.
 
 ## Usage Instructions
-
-### Cloning the Repository
-
-```bash
-git clone https://github.com/jakemorrison284/deploy-scripts.git
-cd deploy-scripts
-```
 
 ### Running Deployment Scripts
 
@@ -97,13 +95,19 @@ Ensure that backup files used for testing comply with retention and format polic
 
 ## Configuration and Environment Variables
 
-Some scripts may require configuration through environment variables or configuration files. Please refer to individual script headers or the `docs/` directory for specific configuration details.
+Some scripts require configuration through environment variables or configuration files. Common variables include:
+
+- `DEPLOY_ENV`  Specifies the deployment environment (e.g., production, staging).
+- `PG_BACKUP_PATH`  Path to PostgreSQL backup files.
+- `FAILOVER_CONFIG`  Configuration file or parameters for failover behavior.
+
+Please check individual script headers or the `docs/` directory for specific environment variables and configuration details.
 
 ## Backup Strategy Compliance
 
 ### Retention Policies
 
-- Backup files used with restore scripts should adhere to defined retention policies as per infrastructure guidelines.
+- Backup files used with restore scripts should adhere to defined retention policies as per [Infrastructure Backup Guidelines](docs/backup_guidelines.md).
 - Retain backups for the required duration to ensure data integrity and compliance.
 
 ### Testing Procedures
@@ -113,10 +117,11 @@ Some scripts may require configuration through environment variables or configur
 
 ## Troubleshooting
 
-- Review script output logs for errors.
+- Review script output logs for errors and warnings.
 - Verify environment variables and configurations are correctly set.
 - Check backup file validity before restoration.
-- Consult the `runbook/` directory for operational procedures and troubleshooting steps.
+- Common error scenarios and resolutions can be found in the `runbook/` directory.
+- For additional help, open an issue or consult the team.
 
 ## Contribution Guidelines
 
