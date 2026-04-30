@@ -13,32 +13,26 @@ send_notification() {
     local message=$2
     local timestamp
     timestamp=$(date +"%Y-%m-%d %H:%M:%S")
-    
-    # Define your notification channel/service
-    local notification_channel="$NOTIFICATION_CHANNEL"  # Use environment variable
 
-    # Construct the notification message
+    local notification_channel="${RELEASE_AUTOMATION_NOTIFY_CHANNEL:-$NOTIFICATION_CHANNEL}"
     local full_message="[NOTIFICATION] [$timestamp] Deployment Status: $status - $message"
 
-    # Using a hypothetical command to send notifications
-    if ! send_to_channel "$notification_channel" "$full_message"; then
-        echo "Error: Failed to send notification for status: $status. Attempting to retry..."
-        
-        # Retry logic (simple example)
+    if [[ -n "$RELEASE_AUTOMATION_NOTIFY_CLI" ]]; then
         for i in {1..3}; do
-            if send_to_channel "$notification_channel" "$full_message"; then
+            if "$RELEASE_AUTOMATION_NOTIFY_CLI" send --channel "$notification_channel" --message "$full_message"; then
                 echo "Notification sent successfully on retry #$i."
                 return
             fi
             echo "Retry #$i failed. Waiting before retrying..."
-            sleep 2 # Wait before retrying
+            sleep 2
         done
-        
         echo "Error: All retries failed. Notification was not sent."
-        # Optional: Log this error to a file for further analysis
         echo "Failed to send notification for status: $status on $(date)" >> notification_errors.log
     else
-        echo "Notification sent successfully."
+        # Fallback to existing send_to_channel function
+        if ! send_to_channel "$notification_channel" "$full_message"; then
+            echo "Error: Failed to send notification for status: $status."
+        fi
     fi
 }
 
