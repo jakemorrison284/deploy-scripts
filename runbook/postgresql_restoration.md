@@ -23,6 +23,14 @@ To use the `restore_postgres.sh` script, follow the instructions below:
 ./restore_postgres.sh my_database /path/to/backup_file.sql
 ```
 
+## Key Features
+- Configurable PostgreSQL connection parameters (host, port, user).
+- Optional notification support through an external script.
+- Checksum validation for backup file integrity.
+- Support for various backup file formats including .sql, .dump, .gz, and .zip.
+- Dry-run mode to simulate the restore process without making any changes.
+- Detailed logging of restore operations.
+
 ## Important Notes:
 - Ensure that the PostgreSQL server is running and accessible.
 - The script requires that the user has the necessary permissions to restore the database.
