@@ -6,8 +6,16 @@ PGHOST=${PGHOST:-localhost}
 PGPORT=${PGPORT:-5432}
 PGUSER=${PGUSER:-postgres}
 NOTIFY_SCRIPT=${NOTIFY_SCRIPT:-} # Path to a script for notifications (optional)
+VERBOSE=${VERBOSE:-false} # Verbose logging
 
 LOG_FILE="restore_log_$(date +%Y%m%d_%H%M%S).log"
+
+# Function to log messages with timestamp and level
+log() {
+    local level=$1
+    local message=$2
+    echo "$(date '+%Y-%m-%d %H:%M:%S') [$level] $message" | tee -a "$LOG_FILE"
+}
 
 # Function to send notifications (if NOTIFY_SCRIPT is set)
 notify() {
@@ -20,7 +28,7 @@ notify() {
 
 # Function to print usage
 usage() {
-    echo "Usage: $0 <database_name> <backup_file> [--checksum=<checksum>] [--dry-run] [--host=<host>] [--port=<port>] [--user=<user>]"
+    echo "Usage: $0 <database_name> <backup_file> [--checksum=<checksum>] [--dry-run] [--host=<host>] [--port=<port>] [--user=<user>] [--verbose]"
     exit 1
 }
 
@@ -32,29 +40,32 @@ validate_checksum() {
 
     if [[ -z "$checksum_expected" ]]; then
         # No checksum provided, skip validation
+        log "INFO" "No checksum provided, skipping checksum validation."
         return
     fi
 
-    local checksum_actual
+    # Check checksum command availability early
     case "$checksum_type" in
         sha256)
             if ! command -v sha256sum &> /dev/null; then
-                echo "Warning: sha256sum command not found. Skipping checksum validation." | tee -a "$LOG_FILE"
-                return
+                log "ERROR" "sha256sum command not found. Cannot validate checksum."
+                exit 1
             fi
             checksum_actual=$(sha256sum "$file" | awk '{print $1}')
             ;;
         *)
-            echo "Error: Unsupported checksum type '$checksum_type'." | tee -a "$LOG_FILE"
+            log "ERROR" "Unsupported checksum type '$checksum_type'."
             exit 1
             ;;
     esac
 
     if [[ "$checksum_actual" != "$checksum_expected" ]]; then
-        echo "Error: Checksum verification failed for file '$file'. Expected: $checksum_expected, Actual: $checksum_actual." | tee -a "$LOG_FILE"
+        log "ERROR" "Checksum verification failed for file '$file'. Expected: $checksum_expected, Actual: $checksum_actual."
+        notify "Checksum verification failed for file '$file'."
         exit 1
     fi
 
+    log "INFO" "Checksum verification passed for file '$file'."
     notify "Checksum verification passed for file '$file'."
 }
 
@@ -65,16 +76,29 @@ validate_backup_file() {
     local checksum_type=$3
 
     if [[ ! -f "$file" ]]; then
-        echo "Error: Backup file '$file' does not exist." | tee -a "$LOG_FILE"
+        log "ERROR" "Backup file '$file' does not exist."
+        notify "Backup file '$file' does not exist."
         exit 1
     fi
     if [[ ! "$file" =~ \.sql$ ]] && [[ ! "$file" =~ \.dump$ ]] && [[ ! "$file" =~ \.gz$ ]] && [[ ! "$file" =~ \.zip$ ]]; then
-        echo "Error: Backup file '$file' is not a supported format (.sql, .dump, .gz, .zip)." | tee -a "$LOG_FILE"
+        log "ERROR" "Backup file '$file' is not a supported format (.sql, .dump, .gz, .zip)."
+        notify "Backup file '$file' is not a supported format (.sql, .dump, .gz, .zip)."
         exit 1
     fi
 
     # Validate checksum if provided
     validate_checksum "$file" "$checksum" "$checksum_type"
+
+    # Additional integrity check: try listing contents for .dump files
+    if [[ "$file" =~ \.dump$ ]]; then
+        if ! pg_restore --list "$file" &> /dev/null; then
+            log "ERROR" "Backup file '$file' integrity check failed with pg_restore --list."
+            notify "Backup file '$file' integrity check failed."
+            exit 1
+        else
+            log "INFO" "Backup file '$file' passed integrity check with pg_restore --list."
+        fi
+    fi
 }
 
 # Function to restore a PostgreSQL database
@@ -92,22 +116,24 @@ restore_database() {
 
     # Handle compressed backups
     if [[ "$backup_file" =~ \.gz$ ]]; then
-        gunzip -c "$backup_file" | psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$db_name" &
+        gunzip -c "$backup_file" | psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$db_name" 2>> "$LOG_FILE"
+        local status=${PIPESTATUS[1]}
     elif [[ "$backup_file" =~ \.zip$ ]]; then
-        unzip -p "$backup_file" | psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$db_name" &
+        unzip -p "$backup_file" | psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$db_name" 2>> "$LOG_FILE"
+        local status=${PIPESTATUS[1]}
     else
-        psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$db_name" -f "$backup_file" &
+        psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$db_name" -f "$backup_file" 2>> "$LOG_FILE"
+        local status=$?
     fi
 
-    wait $!
-    local status=$?
-
     if [[ $status -ne 0 ]]; then
-        notify "Error: Database restoration failed with status $status."
+        log "ERROR" "Database restoration failed with status $status. Check $LOG_FILE for details."
+        notify "Database restoration failed with status $status."
         exit $status
     fi
 
     notify "Database '$db_name' restored successfully from '$backup_file'."
+    log "INFO" "Database '$db_name' restored successfully from '$backup_file'."
 }
 
 # Parse arguments
@@ -144,6 +170,10 @@ while (( "$#" )); do
             PGUSER="${1#*=}"
             shift
             ;;
+        --verbose)
+            VERBOSE=true
+            shift
+            ;;
         *)
             echo "Unknown option: $1"
             usage
@@ -159,7 +189,7 @@ fi
 
 # Validate inputs
 if [[ -z "$DATABASE_NAME" ]]; then
-    echo "Error: DATABASE_NAME cannot be empty." | tee -a "$LOG_FILE"
+    log "ERROR" "DATABASE_NAME cannot be empty."
     usage
 fi
 
