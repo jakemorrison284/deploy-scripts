@@ -40,6 +40,17 @@ To run the deployment scripts, use the following commands:
    ```
    This script will handle the failover process as per the defined configurations.
 
+## Backup Strategy Compliance
+
+### Retention Policies
+- Backup files used with restore scripts should adhere to the defined retention policies as per the updated infrastructure guidelines.
+- Ensure backups are retained for the required duration to meet data integrity and compliance mandates.
+
+### Testing Procedures
+- The restoration scripts include automated testing (see `test_restore_postgres.sh`) to validate restore operations across supported backup formats.
+- Testing ensures backup files are valid, restores are successful, and notifications are triggered appropriately.
+- Regularly run and update tests to comply with evolving backup and restoration policies.
+
 ## Contribution Guidelines
 We welcome contributions! Please submit a pull request or open an issue to discuss any enhancements or bug fixes.
 
