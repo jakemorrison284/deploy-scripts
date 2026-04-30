@@ -6,6 +6,10 @@ PGHOST=${PGHOST:-localhost}
 PGPORT=${PGPORT:-5432}
 PGUSER=${PGUSER:-postgres}
 NOTIFY_SCRIPT=${NOTIFY_SCRIPT:-} # Path to a script for notifications (optional)
+NOTIFY_EMAIL=${NOTIFY_EMAIL:-}   # Email address for notifications (optional)
+NOTIFY_SLACK_WEBHOOK=${NOTIFY_SLACK_WEBHOOK:-} # Slack webhook URL (optional)
+MAX_RETRIES=${MAX_RETRIES:-3}
+RETRY_BACKOFF_SECONDS=${RETRY_BACKOFF_SECONDS:-10}
 
 LOG_FILE="restore_log_$(date +%Y%m%d_%H%M%S).log"
 
@@ -16,15 +20,33 @@ notify() {
     if [[ -n "$NOTIFY_SCRIPT" && -x "$NOTIFY_SCRIPT" ]]; then
         "$NOTIFY_SCRIPT" "$message"
     fi
+    if [[ -n "$NOTIFY_EMAIL" ]]; then
+        echo "$message" | mail -s "Postgres Restore Notification" "$NOTIFY_EMAIL"
+    fi
+    if [[ -n "$NOTIFY_SLACK_WEBHOOK" ]]; then
+        curl -X POST -H 'Content-type: application/json' --data "{\"text\":\"$message\"}" "$NOTIFY_SLACK_WEBHOOK" >/dev/null 2>&1 || true
+    fi
 }
 
-# Function to print usage
 usage() {
-    echo "Usage: $0 <database_name> <backup_file> [--dry-run] [--host=<host>] [--port=<port>] [--user=<user>]"
+    cat <<EOF
+Usage: $0 <database_name> <backup_file> [options]
+
+Options:
+  --dry-run                 Simulate the restore operation without making changes.
+  --host=<host>             PostgreSQL host (default: $PGHOST)
+  --port=<port>             PostgreSQL port (default: $PGPORT)
+  --user=<user>             PostgreSQL user (default: $PGUSER)
+  --max-retries=<number>    Maximum retry attempts on failure (default: $MAX_RETRIES)
+  --help                    Show this help message and exit
+
+Example:
+  $0 mydb backup.sql.gz --dry-run --host=db-host --user=admin
+
+EOF
     exit 1
 }
 
-# Function to validate backup file format and integrity
 validate_backup_file() {
     local file=$1
     if [[ ! -f "$file" ]]; then
@@ -35,10 +57,17 @@ validate_backup_file() {
         echo "Error: Backup file '$file' is not a supported format (.sql, .dump, .gz, .zip)." | tee -a "$LOG_FILE"
         exit 1
     fi
-    # Optionally add checksum or file integrity checks here
+    # Checksum verification if checksum file exists
+    if [[ -f "$file.sha256" ]]; then
+        echo "Verifying checksum for $file ..."
+        sha256sum -c "$file.sha256"
+        if [[ $? -ne 0 ]]; then
+            echo "Error: Checksum verification failed for $file." | tee -a "$LOG_FILE"
+            exit 1
+        fi
+    fi
 }
 
-# Function to restore a PostgreSQL database
 restore_database() {
     local db_name=$1
     local backup_file=$2
@@ -51,20 +80,29 @@ restore_database() {
         return
     fi
 
-    # Handle compressed backups
-    if [[ "$backup_file" =~ \.gz$ ]]; then
-        gunzip -c "$backup_file" | psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$db_name" &
-    elif [[ "$backup_file" =~ \.zip$ ]]; then
-        unzip -p "$backup_file" | psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$db_name" &
-    else
-        psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$db_name" -f "$backup_file" &
-    fi
+    local attempt=0
+    local status=1
 
-    wait $!
-    local status=$?
+    until [[ $attempt -ge $MAX_RETRIES ]]
+    do
+        if [[ "$backup_file" =~ \.gz$ ]]; then
+            gunzip -c "$backup_file" | psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$db_name"
+        elif [[ "$backup_file" =~ \.zip$ ]]; then
+            unzip -p "$backup_file" | psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$db_name"
+        else
+            psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$db_name" -f "$backup_file"
+        fi
+        status=$?
+        if [[ $status -eq 0 ]]; then
+            break
+        fi
+        attempt=$((attempt+1))
+        notify "Restore attempt $attempt/$MAX_RETRIES failed with status $status. Retrying after $RETRY_BACKOFF_SECONDS seconds..."
+        sleep $RETRY_BACKOFF_SECONDS
+    done
 
     if [[ $status -ne 0 ]]; then
-        notify "Error: Database restoration failed with status $status."
+        notify "Error: Database restoration failed after $MAX_RETRIES attempts."
         exit $status
     fi
 
@@ -100,15 +138,20 @@ while (( "$#" )); do
             PGUSER="${1#*=}"
             shift
             ;;
+        --max-retries=*)
+            MAX_RETRIES="${1#*=}"
+            shift
+            ;;
+        --help)
+            usage
+            ;;
         *)
             echo "Unknown option: $1"
             usage
             ;;
     esac
-
 done
 
-# Validate inputs
 if [[ -z "$DATABASE_NAME" ]]; then
     echo "Error: DATABASE_NAME cannot be empty." | tee -a "$LOG_FILE"
     usage
@@ -116,7 +159,15 @@ fi
 
 validate_backup_file "$BACKUP_FILE"
 
-# Start restoration
-{
-    restore_database "$DATABASE_NAME" "$BACKUP_FILE" "$DRY_RUN"
-} 2>&1 | tee -a "$LOG_FILE"
+if [[ $DRY_RUN == true ]]; then
+    notify "Dry run mode enabled. Simulating all steps."
+    notify "Validating backup file format and checksum."
+    # Simulate restore_database without executing commands
+    notify "Restore operation would be executed here."
+    notify "Notifications would be sent as configured."
+else
+    # Start restoration
+    {
+        restore_database "$DATABASE_NAME" "$BACKUP_FILE" "$DRY_RUN"
+    } 2>&1 | tee -a "$LOG_FILE"
+}
