@@ -40,5 +40,13 @@ To use the `restore_postgres.sh` script, follow the instructions below:
 - If you encounter issues, check the PostgreSQL logs for more details on the failure.
 - Ensure that the provided backup file exists and is a valid SQL dump.
 
+## Potential Improvements
+- Add support for additional checksum algorithms beyond sha256 for flexibility.
+- Implement enhanced error handling for network or authentication failures.
+- Include automatic backup file decompression for additional compression formats.
+- Provide more granular logging levels and options.
+- Add support for parallel restoration to speed up large database restores.
+- Integrate with centralized monitoring or alerting systems for notifications.
+
 ## Conclusion
 This script provides a straightforward method for restoring PostgreSQL databases as part of disaster recovery procedures. For any questions or further assistance, please contact the database administrator.
