@@ -37,7 +37,8 @@ This repository contains shell scripts used for deploying the NovaPay applicatio
 3. Set required environment variables. For example:
    ```bash
    export DEPLOY_ENV=production
-   export PG_BACKUP_PATH=/path/to/backup
+   export PG_BACKUP_PATH=/var/backups/postgres
+   export FAILOVER_CONFIG=/etc/failover/config.yaml
    ```
 
 4. Run deployment or other scripts as needed (see [Usage Instructions](#usage-instructions)).
@@ -124,6 +125,14 @@ Set variables via:
 export VAR_NAME=value
 ```
 
+Example:
+
+```bash
+export DEPLOY_ENV=production
+export PG_BACKUP_PATH=/var/backups/postgres
+export FAILOVER_CONFIG=/etc/failover/config.yaml
+```
+
 For detailed configuration, see the [docs/](docs/) directory.
 
 ## Backup Strategy Compliance
@@ -139,6 +148,26 @@ For detailed configuration, see the [docs/](docs/) directory.
 - Validate backup file integrity before restoration.
 - Common issues and resolutions are documented in the `runbook/` directory.
 - Enable verbose mode by adding `-v` to scripts where supported.
+
+### Common Issues and Fixes
+
+- **Deployment script fails due to missing Node.js or Docker:**
+  Ensure the required dependencies are installed and accessible in your PATH.
+
+- **Failover script errors related to configuration:**
+  Verify the `FAILOVER_CONFIG` environment variable points to a valid configuration file.
+
+- **Restore script fails with permission denied:**
+  Check file permissions on the backup files and ensure the executing user has the necessary access rights.
+
+- **Backup file not found or corrupted:**
+  Confirm the `PG_BACKUP_PATH` is correct and the backup files are intact.
+
+- **Tests failing due to environment issues:**
+  Ensure all required environment variables are set and dependencies are installed.
+
+- **Verbose mode for debugging:**
+  Run scripts with `-v` or `--verbose` flags where supported to get detailed output for troubleshooting.
 
 ## Getting Help
 
