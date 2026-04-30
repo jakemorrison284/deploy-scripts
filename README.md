@@ -13,6 +13,7 @@ CI/CD pipeline scripts for NovaPay deployments.
   - [Failover Process](#failover-process)
   - [Restoring PostgreSQL Database](#restoring-postgresql-database)
   - [Running Tests](#running-tests)
+- [Examples](#examples)
 - [Configuration and Environment Variables](#configuration-and-environment-variables)
 - [Backup Strategy Compliance](#backup-strategy-compliance)
 - [Troubleshooting](#troubleshooting)
@@ -110,6 +111,40 @@ bash test_restore_postgres.sh
 ```
 
 Ensure backup files used for testing comply with retention policies.
+
+## Examples
+
+### Example: Deploying NovaPay to Production
+
+```bash
+bash deploy.sh --env production
+```
+
+Expected: Successful deployment confirmation message.
+
+### Example: Initiating Failover
+
+```bash
+bash failover.sh
+```
+
+Expected: Failover process starts; monitor output for errors.
+
+### Example: Restoring a PostgreSQL Backup
+
+```bash
+bash restore_postgres.sh --backup-file /var/backups/postgres/latest_backup.sql
+```
+
+Expected: Database restored from specified backup file.
+
+### Example: Running Automated Restore Tests
+
+```bash
+bash test_restore_postgres.sh
+```
+
+Expected: Test results validating backup restores.
 
 ## Configuration and Environment Variables
 
