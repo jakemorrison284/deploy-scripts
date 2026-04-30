@@ -113,19 +113,17 @@ Ensure backup files used for testing comply with retention policies.
 
 ## Configuration and Environment Variables
 
-Common environment variables:
+This section provides detailed instructions on setting up environment variables required by the scripts.
 
-- `DEPLOY_ENV`: Deployment environment (e.g., production, staging).
-- `PG_BACKUP_PATH`: Path to PostgreSQL backup files.
-- `FAILOVER_CONFIG`: Failover configuration file or parameters.
+### Common Environment Variables
 
-Set variables via:
+- `DEPLOY_ENV`: Deployment environment (e.g., production, staging, development). This variable affects which environment the deployment scripts target.
+- `PG_BACKUP_PATH`: Filesystem path where PostgreSQL backup files are stored. Example: `/var/backups/postgres`
+- `FAILOVER_CONFIG`: Path to the failover configuration file. Example: `/etc/failover/config.yaml`
 
-```bash
-export VAR_NAME=value
-```
+### Setting Environment Variables
 
-Example:
+You can set environment variables temporarily in your shell session using the `export` command:
 
 ```bash
 export DEPLOY_ENV=production
@@ -133,7 +131,18 @@ export PG_BACKUP_PATH=/var/backups/postgres
 export FAILOVER_CONFIG=/etc/failover/config.yaml
 ```
 
-For detailed configuration, see the [docs/](docs/) directory.
+To make these variables persistent across sessions, add the export commands to your shell's profile file (e.g., `~/.bashrc`, `~/.bash_profile`, `~/.zshrc`):
+
+```bash
+echo 'export DEPLOY_ENV=production' >> ~/.bashrc
+echo 'export PG_BACKUP_PATH=/var/backups/postgres' >> ~/.bashrc
+echo 'export FAILOVER_CONFIG=/etc/failover/config.yaml' >> ~/.bashrc
+source ~/.bashrc
+```
+
+### Script-Specific Environment Variables
+
+Some scripts may require additional environment variables or have script-specific configurations. Refer to the header comments in each script file or the `runbook/` documentation directory for details.
 
 ## Backup Strategy Compliance
 
