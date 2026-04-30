@@ -79,7 +79,17 @@ bash deploy.sh --env production
 
 Replace `production` with your target environment (e.g., staging, development).
 
-**Expected output:** Confirmation message indicating successful deployment.
+**Expected output on success:**
+
+```
+Deployment to production environment completed successfully.
+```
+
+**Example error output:**
+
+```
+Error: Missing Node.js runtime. Please install Node.js and retry.
+```
 
 ### Failover Process
 
@@ -115,9 +125,9 @@ Ensure backup files used for testing comply with retention policies.
 
 Common environment variables:
 
-- `DEPLOY_ENV`: Deployment environment (e.g., production, staging).
-- `PG_BACKUP_PATH`: Path to PostgreSQL backup files.
-- `FAILOVER_CONFIG`: Failover configuration file or parameters.
+- `DEPLOY_ENV`: Deployment environment. Examples: `production`, `staging`, `development`.
+- `PG_BACKUP_PATH`: Absolute path to PostgreSQL backup files directory. Example: `/var/backups/postgres`.
+- `FAILOVER_CONFIG`: Path to failover configuration file in YAML format. Example: `/etc/failover/config.yaml`.
 
 Set variables via:
 
@@ -133,7 +143,12 @@ export PG_BACKUP_PATH=/var/backups/postgres
 export FAILOVER_CONFIG=/etc/failover/config.yaml
 ```
 
-For detailed configuration, see the [docs/](docs/) directory.
+For detailed configuration options and sample files, see the [docs/](docs/) directory.
+
+## Additional Documentation
+
+- Operational runbooks can be found in the [runbook/](runbook/) directory.
+- Backup and deployment guidelines are documented in the [docs/](docs/) directory.
 
 ## Backup Strategy Compliance
 
@@ -169,10 +184,26 @@ For detailed configuration, see the [docs/](docs/) directory.
 - **Verbose mode for debugging:**
   Run scripts with `-v` or `--verbose` flags where supported to get detailed output for troubleshooting.
 
+## Script Versioning and Compatibility
+
+These scripts are tested with Bash version 4.4+ and require compatible versions of dependencies such as Node.js (version 14+) and Docker (version 19+). Please ensure your environment meets these requirements.
+
 ## Getting Help
 
 - For further assistance, open an issue in this repository.
-- Consult the team or communication channels for support.
+- Contact the DevOps team via Slack channel #devops-support for urgent queries.
+- Email support at devops-support@example.com for escalation.
+
+## Frequently Asked Questions (FAQ)
+
+**Q: How do I update the deployment scripts?**  
+A: Pull the latest changes from the repository and verify compatibility before running.
+
+**Q: What do I do if a backup restore fails?**  
+A: Check backup file integrity and permissions, then consult the runbook for recovery steps.
+
+**Q: Can I run the scripts on Windows?**  
+A: These scripts are designed for Unix-like environments; Windows support is not guaranteed.
 
 ## Contribution Guidelines
 
