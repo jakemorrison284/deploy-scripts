@@ -14,7 +14,9 @@ LOG_FILE="restore_log_$(date +%Y%m%d_%H%M%S).log"
 log() {
     local level=$1
     local message=$2
-    echo "$(date '+%Y-%m-%d %H:%M:%S') [$level] $message" | tee -a "$LOG_FILE"
+    if [[ "$VERBOSE" == true || "$level" != "DEBUG" ]]; then
+        echo "$(date '+%Y-%m-%d %H:%M:%S') [$level] $message" | tee -a "$LOG_FILE"
+    fi
 }
 
 # Function to send notifications (if NOTIFY_SCRIPT is set)
@@ -28,7 +30,21 @@ notify() {
 
 # Function to print usage
 usage() {
-    echo "Usage: $0 <database_name> <backup_file> [--checksum=<checksum>] [--dry-run] [--host=<host>] [--port=<port>] [--user=<user>] [--verbose]"
+    cat <<EOF
+Usage: $0 <database_name> <backup_file> [options]
+
+Options:
+  --checksum=<checksum>     SHA256 checksum of the backup file for validation
+  --dry-run                 Simulate restore operation without making changes
+  --host=<host>             PostgreSQL host (default: localhost)
+  --port=<port>             PostgreSQL port (default: 5432)
+  --user=<user>             PostgreSQL user (default: postgres)
+  --verbose                 Enable verbose logging
+  --help                    Show this help message and exit
+
+Note:
+  For production restores, use the --confirm flag to proceed.
+EOF
     exit 1
 }
 
@@ -89,7 +105,7 @@ validate_backup_file() {
     # Validate checksum if provided
     validate_checksum "$file" "$checksum" "$checksum_type"
 
-    # Additional integrity check: try listing contents for .dump files
+    # Additional integrity check:
     if [[ "$file" =~ \.dump$ ]]; then
         if ! pg_restore --list "$file" &> /dev/null; then
             log "ERROR" "Backup file '$file' integrity check failed with pg_restore --list."
@@ -98,6 +114,34 @@ validate_backup_file() {
         else
             log "INFO" "Backup file '$file' passed integrity check with pg_restore --list."
         fi
+    elif [[ "$file" =~ \.sql\.gz$ ]]; then
+        # Check gzip integrity
+        if ! gzip -t "$file" 2> /dev/null; then
+            log "ERROR" "Backup file '$file' integrity check failed: gzip test failed."
+            notify "Backup file '$file' integrity check failed: gzip test failed."
+            exit 1
+        else
+            log "INFO" "Backup file '$file' passed gzip integrity check."
+        fi
+    elif [[ "$file" =~ \.sql\.zip$ ]]; then
+        # Check zip integrity
+        if ! unzip -t "$file" &> /dev/null; then
+            log "ERROR" "Backup file '$file' integrity check failed: zip test failed."
+            notify "Backup file '$file' integrity check failed: zip test failed."
+            exit 1
+        else
+            log "INFO" "Backup file '$file' passed zip integrity check."
+        fi
+    fi
+}
+
+# Confirm production restore safeguard
+confirm_production_restore() {
+    read -rp "WARNING: You are about to restore to a production database. Type 'YES' to confirm: " confirm
+    if [[ "$confirm" != "YES" ]]; then
+        log "ERROR" "Restore to production database aborted by user."
+        notify "Restore to production database aborted by user."
+        exit 1
     fi
 }
 
@@ -114,15 +158,24 @@ restore_database() {
         return
     fi
 
-    # Handle compressed backups
-    if [[ "$backup_file" =~ \.gz$ ]]; then
-        gunzip -c "$backup_file" | psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$db_name" 2>> "$LOG_FILE"
+    # Safeguard: confirm if restoring to production (simple heuristic: db name contains prod)
+    if [[ "$db_name" =~ [Pp][Rr][Oo][Dd] ]]; then
+        confirm_production_restore
+    fi
+
+    # Handle compressed backups and restore commands
+    if [[ "$backup_file" =~ \.dump$ ]]; then
+        # Use pg_restore for .dump files
+        pg_restore --no-owner --host="$PGHOST" --port="$PGPORT" --username="$PGUSER" --dbname="$db_name" "$backup_file" &>> "$LOG_FILE"
+        local status=$?
+    elif [[ "$backup_file" =~ \.gz$ ]]; then
+        gunzip -c "$backup_file" | psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$db_name" &>> "$LOG_FILE"
         local status=${PIPESTATUS[1]}
     elif [[ "$backup_file" =~ \.zip$ ]]; then
-        unzip -p "$backup_file" | psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$db_name" 2>> "$LOG_FILE"
+        unzip -p "$backup_file" | psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$db_name" &>> "$LOG_FILE"
         local status=${PIPESTATUS[1]}
     else
-        psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$db_name" -f "$backup_file" 2>> "$LOG_FILE"
+        psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$db_name" -f "$backup_file" &>> "$LOG_FILE"
         local status=$?
     fi
 
@@ -147,6 +200,8 @@ shift 2
 
 CHECKSUM=""
 DRY_RUN=false
+SHOW_HELP=false
+CONFIRM_PROD=false
 
 while (( "$#" )); do
     case "$1" in
@@ -174,6 +229,14 @@ while (( "$#" )); do
             VERBOSE=true
             shift
             ;;
+        --help)
+            SHOW_HELP=true
+            shift
+            ;;
+        --confirm)
+            CONFIRM_PROD=true
+            shift
+            ;;
         *)
             echo "Unknown option: $1"
             usage
@@ -181,6 +244,10 @@ while (( "$#" )); do
     esac
 
 done
+
+if [[ "$SHOW_HELP" == true ]]; then
+    usage
+fi
 
 # Use checksum from environment variable if not provided as parameter
 if [[ -z "$CHECKSUM" ]]; then
