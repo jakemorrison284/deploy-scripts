@@ -26,6 +26,10 @@ This runbook provides step-by-step instructions for deploying the NovaPay applic
 - Verify environment variable settings.
 - Confirm network connectivity to required services.
 
+## Communication and Coordination
+- Inform stakeholders and teams about deployment schedules and procedures.
+- Establish communication channels for deployment status updates and incident reporting.
+
 ## Additional Resources
 - [Failover Runbook](failover_runbook.md)
 - [PostgreSQL Restore Runbook](restore_postgres_runbook.md)
