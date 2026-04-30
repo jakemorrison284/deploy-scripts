@@ -14,6 +14,7 @@ CI/CD pipeline scripts for NovaPay deployments.
   - [Restoring PostgreSQL Database](#restoring-postgresql-database)
   - [Running Tests](#running-tests)
 - [Configuration and Environment Variables](#configuration-and-environment-variables)
+- [Configuration Examples](#configuration-examples)
 - [Backup Strategy Compliance](#backup-strategy-compliance)
 - [Troubleshooting](#troubleshooting)
 - [Getting Help](#getting-help)
@@ -134,6 +135,53 @@ export FAILOVER_CONFIG=/etc/failover/config.yaml
 ```
 
 For detailed configuration, see the [docs/](docs/) directory.
+
+## Configuration Examples
+
+This section provides example configurations to help you set up environment variables and failover configuration files correctly.
+
+### Environment Variables Examples
+
+Set these environment variables before running the deployment or failover scripts:
+
+```bash
+export DEPLOY_ENV=production
+export PG_BACKUP_PATH=/var/backups/postgres
+export FAILOVER_CONFIG=/etc/failover/config.yaml
+```
+
+- `DEPLOY_ENV`: Specifies the deployment environment. Common values are `production`, `staging`, or `development`.
+- `PG_BACKUP_PATH`: Directory path where PostgreSQL backup files are stored.
+- `FAILOVER_CONFIG`: Path to the YAML configuration file used by the failover script.
+
+### Failover Configuration File Example
+
+Below is a sample `config.yaml` for failover settings:
+
+```yaml
+failover:
+  primary_host: db-primary.example.com
+  standby_hosts:
+    - db-standby1.example.com
+    - db-standby2.example.com
+  replication_slot: my_replication_slot
+  max_failover_attempts: 3
+  retry_interval_seconds: 60
+logging:
+  level: INFO
+  file: /var/log/failover.log
+```
+
+Explanation:
+
+- `primary_host`: Hostname or IP of the primary database server.
+- `standby_hosts`: List of standby database servers for failover.
+- `replication_slot`: Name of the replication slot used for streaming replication.
+- `max_failover_attempts`: Maximum number of failover retries before alerting.
+- `retry_interval_seconds`: Seconds to wait between failover attempts.
+- `logging`: Configuration for logging level and log file location.
+
+Adjust these values to suit your infrastructure and failover strategy.
 
 ## Backup Strategy Compliance
 
