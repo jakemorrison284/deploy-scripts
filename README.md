@@ -2,6 +2,24 @@
 
 CI/CD pipeline scripts for NovaPay deployments.
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Quick Start](#quick-start)
+- [Prerequisites](#prerequisites)
+- [Repository Contents](#repository-contents)
+- [Usage Instructions](#usage-instructions)
+  - [Running Deployment Scripts](#running-deployment-scripts)
+  - [Failover Process](#failover-process)
+  - [Restoring PostgreSQL Database](#restoring-postgresql-database)
+  - [Running Tests](#running-tests)
+- [Configuration and Environment Variables](#configuration-and-environment-variables)
+- [Backup Strategy Compliance](#backup-strategy-compliance)
+- [Troubleshooting](#troubleshooting)
+- [Getting Help](#getting-help)
+- [Contribution Guidelines](#contribution-guidelines)
+- [License](#license)
+
 ## Overview
 
 This repository contains shell scripts used for deploying the NovaPay application, handling failover procedures, and managing PostgreSQL database restores. It also includes testing scripts to validate backup and restore operations. These scripts aim to streamline and automate key deployment and disaster recovery tasks.
@@ -14,120 +32,122 @@ This repository contains shell scripts used for deploying the NovaPay applicatio
    cd deploy-scripts
    ```
 
-2. Review prerequisites and ensure required tools are installed.
+2. Install prerequisites (see [Prerequisites](#prerequisites) below).
 
-3. Run the deployment or other scripts as needed (see Usage Instructions below).
+3. Set required environment variables. For example:
+   ```bash
+   export DEPLOY_ENV=production
+   export PG_BACKUP_PATH=/path/to/backup
+   ```
+
+4. Run deployment or other scripts as needed (see [Usage Instructions](#usage-instructions)).
 
 ## Prerequisites
 
-Before using the scripts, ensure you have the following installed on your system:
+Before using the scripts, ensure the following tools are installed:
 
-- [Git](https://git-scm.com/)  
+- [Git](https://git-scm.com/)
 - [Node.js](https://nodejs.org/)  
-  - Required by: `deploy.sh` (for build or deployment tasks involving Node.js)
+  Required by `deploy.sh` for build or deployment tasks involving Node.js.
 - [Docker](https://www.docker.com/)  
-  - Required if deploying within containerized environments using `deploy.sh`
+  Required if deploying within containerized environments using `deploy.sh`.
 
-Verify the individual script headers for any additional dependencies.
+Check script headers for any script-specific dependencies.
 
 ## Repository Contents
 
-- `deploy.sh`  
-  Main deployment script to deploy the NovaPay application to specified environments. Requires Node.js and optionally Docker.
-- `failover.sh`  
-  Script to initiate and manage failover processes in case of system failures.
-- `restore_postgres.sh`  
-  Script to restore PostgreSQL databases from backup files.
-- `test_restore_postgres.sh`  
-  Automated tests to validate database restore operations.
-- `restore_postgres_diff.patch`  
-  Patch file related to the PostgreSQL restore process.
-- `release_yaml_improvements.md`  
-  Documentation and proposals related to improving deployment YAML configurations.
-- `docs/`  
-  Directory containing additional documentation resources.
-- `runbook/`  
-  Directory with runbooks for operational procedures.
-- `tests/`  
-  Directory containing test scripts and test data.
+- `deploy.sh`: Main deployment script for deploying NovaPay to specified environments.
+- `failover.sh`: Script to initiate and manage failover processes.
+- `restore_postgres.sh`: Script to restore PostgreSQL databases from backup files.
+- `test_restore_postgres.sh`: Automated tests for validating database restore operations.
+- `restore_postgres_diff.patch`: Patch file related to PostgreSQL restore.
+- `release_yaml_improvements.md`: Documentation and proposals for improving deployment YAML.
+- `docs/`: Additional documentation resources.
+- `runbook/`: Runbooks for operational procedures.
+- `tests/`: Test scripts and data.
 
 ## Usage Instructions
 
 ### Running Deployment Scripts
 
-To deploy the application, run:
+Run the deployment script with the environment option:
 
 ```bash
 bash deploy.sh --env production
 ```
 
-Replace `production` with the desired environment (e.g., staging, development).
+Replace `production` with your target environment (e.g., staging, development).
+
+**Expected output:** Confirmation message indicating successful deployment.
 
 ### Failover Process
 
-To initiate a failover, run:
+Initiate failover procedures by running:
 
 ```bash
 bash failover.sh
 ```
 
-This script will execute the configured failover procedures.
+**Note:** Check the output for any error messages.
 
 ### Restoring PostgreSQL Database
 
-To restore a PostgreSQL database from a backup, use:
+Restore a PostgreSQL database backup with:
 
 ```bash
 bash restore_postgres.sh --backup-file /path/to/backup/file
 ```
 
-Refer to the script header or `runbook/` documentation for detailed instructions and required parameters.
+Refer to the script header or `runbook/` documentation for detailed parameters.
 
 ### Running Tests
 
-To validate the restore process, run the test script:
+Validate restore process with:
 
 ```bash
 bash test_restore_postgres.sh
 ```
 
-Ensure that backup files used for testing comply with retention and format policies.
+Ensure backup files used for testing comply with retention policies.
 
 ## Configuration and Environment Variables
 
-Some scripts require configuration through environment variables or configuration files. Common variables include:
+Common environment variables:
 
-- `DEPLOY_ENV`  Specifies the deployment environment (e.g., production, staging).
-- `PG_BACKUP_PATH`  Path to PostgreSQL backup files.
-- `FAILOVER_CONFIG`  Configuration file or parameters for failover behavior.
+- `DEPLOY_ENV`: Deployment environment (e.g., production, staging).
+- `PG_BACKUP_PATH`: Path to PostgreSQL backup files.
+- `FAILOVER_CONFIG`: Failover configuration file or parameters.
 
-Please check individual script headers or the `docs/` directory for specific environment variables and configuration details.
+Set variables via:
 
-For enhanced details on environment variables and direct links to runbooks, please see the [Enhanced README Additions](docs/enhanced_readme_additions.md) document.
+```bash
+export VAR_NAME=value
+```
+
+For detailed configuration, see the [docs/](docs/) directory.
 
 ## Backup Strategy Compliance
 
-### Retention Policies
-
-- Backup files used with restore scripts should adhere to defined retention policies as per [Infrastructure Backup Guidelines](docs/backup_guidelines.md).
-- Retain backups for the required duration to ensure data integrity and compliance.
-
-### Testing Procedures
-
-- Restore scripts include automated testing to validate backup integrity and successful restoration.
-- Regularly update and run tests to comply with evolving backup and restoration policies.
+- Backup files must follow retention policies as per [Infrastructure Backup Guidelines](docs/backup_guidelines.md).
+- Retain backups for the required duration to ensure compliance.
+- Restore scripts include automated tests to validate backup integrity.
 
 ## Troubleshooting
 
-- Review script output logs for errors and warnings.
-- Verify environment variables and configurations are correctly set.
-- Check backup file validity before restoration.
-- Common error scenarios and resolutions can be found in the `runbook/` directory.
-- For additional help, open an issue or consult the team.
+- Check script output logs for errors.
+- Verify environment variables and configurations are set correctly.
+- Validate backup file integrity before restoration.
+- Common issues and resolutions are documented in the `runbook/` directory.
+- Enable verbose mode by adding `-v` to scripts where supported.
+
+## Getting Help
+
+- For further assistance, open an issue in this repository.
+- Consult the team or communication channels for support.
 
 ## Contribution Guidelines
 
-We welcome contributions! Please submit a pull request or open an issue to discuss enhancements or bug fixes.
+We welcome contributions! Please submit pull requests or open issues for enhancements or bug fixes.
 
 ## License
 
