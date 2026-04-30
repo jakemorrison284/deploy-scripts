@@ -133,6 +133,17 @@ export PG_BACKUP_PATH=/var/backups/postgres
 export FAILOVER_CONFIG=/etc/failover/config.yaml
 ```
 
+Example failover configuration file (`/etc/failover/config.yaml`):
+
+```yaml
+failover:
+  primary_host: db-primary.example.com
+  secondary_host: db-secondary.example.com
+  check_interval: 30  # seconds
+  retry_attempts: 3
+  notification_email: ops-team@example.com
+```
+
 For detailed configuration, see the [docs/](docs/) directory.
 
 ## Backup Strategy Compliance
@@ -173,6 +184,8 @@ For detailed configuration, see the [docs/](docs/) directory.
 
 - For further assistance, open an issue in this repository.
 - Consult the team or communication channels for support.
+- Join the #devops channel on Slack for real-time assistance.
+- Refer to the FAQ document in the [docs/](docs/) directory for common questions and answers.
 
 ## Contribution Guidelines
 
