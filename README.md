@@ -13,6 +13,7 @@ CI/CD pipeline scripts for NovaPay deployments.
   - [Failover Process](#failover-process)
   - [Restoring PostgreSQL Database](#restoring-postgresql-database)
   - [Running Tests](#running-tests)
+- [Script Parameters](#script-parameters)
 - [Configuration and Environment Variables](#configuration-and-environment-variables)
 - [Backup Strategy Compliance](#backup-strategy-compliance)
 - [Troubleshooting](#troubleshooting)
@@ -47,10 +48,10 @@ This repository contains shell scripts used for deploying the NovaPay applicatio
 
 Before using the scripts, ensure the following tools are installed:
 
-- [Git](https://git-scm.com/)
-- [Node.js](https://nodejs.org/)  
+- [Git](https://git-scm.com/) (recommended version >= 2.30)
+- [Node.js](https://nodejs.org/) (recommended version >= 14)  
   Required by `deploy.sh` for build or deployment tasks involving Node.js.
-- [Docker](https://www.docker.com/)  
+- [Docker](https://www.docker.com/) (recommended version >= 20)  
   Required if deploying within containerized environments using `deploy.sh`.
 
 Check script headers for any script-specific dependencies.
@@ -111,26 +112,38 @@ bash test_restore_postgres.sh
 
 Ensure backup files used for testing comply with retention policies.
 
+## Script Parameters
+
+### deploy.sh
+
+- `--env <environment>`: Specify deployment environment (`production`, `staging`, `development`).
+
+### failover.sh
+
+- No parameters. Ensure `FAILOVER_CONFIG` environment variable is set.
+
+### restore_postgres.sh
+
+- `--backup-file <path>`: Path to the PostgreSQL backup file to restore.
+
+### test_restore_postgres.sh
+
+- No parameters.
+
 ## Configuration and Environment Variables
 
 Common environment variables:
 
-- `DEPLOY_ENV`: Deployment environment (e.g., production, staging).
-- `PG_BACKUP_PATH`: Path to PostgreSQL backup files.
-- `FAILOVER_CONFIG`: Failover configuration file or parameters.
+| Variable        | Description                                  | Mandatory | Example                           |
+|-----------------|----------------------------------------------|-----------|---------------------------------|
+| `DEPLOY_ENV`    | Deployment environment                        | Yes       | `production`                    |
+| `PG_BACKUP_PATH`| Path to PostgreSQL backup files               | Yes       | `/var/backups/postgres`          |
+| `FAILOVER_CONFIG`| Failover configuration file or parameters    | Yes       | `/etc/failover/config.yaml`      |
 
 Set variables via:
 
 ```bash
 export VAR_NAME=value
-```
-
-Example:
-
-```bash
-export DEPLOY_ENV=production
-export PG_BACKUP_PATH=/var/backups/postgres
-export FAILOVER_CONFIG=/etc/failover/config.yaml
 ```
 
 For detailed configuration, see the [docs/](docs/) directory.
@@ -147,7 +160,7 @@ For detailed configuration, see the [docs/](docs/) directory.
 - Verify environment variables and configurations are set correctly.
 - Validate backup file integrity before restoration.
 - Common issues and resolutions are documented in the `runbook/` directory.
-- Enable verbose mode by adding `-v` to scripts where supported.
+- Enable verbose mode by adding `-v` or `--verbose` to scripts where supported.
 
 ### Common Issues and Fixes
 
