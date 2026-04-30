@@ -2,57 +2,126 @@
 
 CI/CD pipeline scripts for NovaPay deployments.
 
+## Overview
+
+This repository contains shell scripts used for deploying the NovaPay application, handling failover procedures, and managing PostgreSQL database restores. It also includes testing scripts to validate backup and restore operations. These scripts aim to streamline and automate key deployment and disaster recovery tasks.
+
+## Prerequisites
+
+Before using the scripts, ensure you have the following installed on your system:
+
+- [Git](https://git-scm.com/) 
+- [Node.js](https://nodejs.org/) 
+required for some scripts (please check individual script requirements)
+- [Docker](https://www.docker.com/) 
+required if deploying within containerized environments
+
+## Repository Contents
+
+- `deploy.sh` 
+
+ Main deployment script to deploy the NovaPay application to specified environments.
+- `failover.sh` 
+
+ Script to initiate and manage failover processes in case of system failures.
+- `restore_postgres.sh` 
+
+ Script to restore PostgreSQL databases from backup files.
+- `test_restore_postgres.sh` 
+
+ Automated tests to validate database restore operations.
+- `restore_postgres_diff.patch` 
+
+ Patch file related to the PostgreSQL restore process.
+- `release_yaml_improvements.md` 
+
+ Documentation and proposals related to improving deployment YAML configurations.
+- `docs/` 
+
+ Directory containing additional documentation resources.
+- `runbook/` 
+
+ Directory with runbooks for operational procedures.
+- `tests/` 
+
+ Directory containing test scripts and test data.
+
 ## Usage Instructions
 
-### Prerequisites
-Before using the scripts, ensure you have the following installed:
-- [Git](https://git-scm.com/)
-- [Node.js](https://nodejs.org/) (if applicable)
-- [Docker](https://www.docker.com/) (if applicable)
+### Cloning the Repository
 
-### Running the Scripts
-To run the deployment scripts, use the following commands:
+```bash
+git clone https://github.com/jakemorrison284/deploy-scripts.git
+cd deploy-scripts
+```
 
-1. **Clone the Repository**  
-   ```bash
-   git clone https://github.com/jakemorrison284/deploy-scripts.git
-   cd deploy-scripts
-   ```
+### Running Deployment Scripts
 
-2. **Execute the Deployment Script**  
-   For example, to run the `deploy.sh` script, use:  
-   ```bash
-   bash deploy.sh
-   ```
+To deploy the application, run:
 
-### Example Usage
-- **Deploy Application**  
-   To deploy the NovaPay application, execute the following command:  
-   ```bash
-   bash deploy.sh --env production
-   ```
-   This command deploys the application in the production environment.
+```bash
+bash deploy.sh --env production
+```
 
-- **Failover Process**  
-   If you need to initiate a failover, run:  
-   ```bash
-   bash failover.sh
-   ```
-   This script will handle the failover process as per the defined configurations.
+Replace `production` with the desired environment (e.g., staging, development).
+
+### Failover Process
+
+To initiate a failover, run:
+
+```bash
+bash failover.sh
+```
+
+This script will execute the configured failover procedures.
+
+### Restoring PostgreSQL Database
+
+To restore a PostgreSQL database from a backup, use:
+
+```bash
+bash restore_postgres.sh --backup-file /path/to/backup/file
+```
+
+Refer to the script header or `runbook/` documentation for detailed instructions and required parameters.
+
+### Running Tests
+
+To validate the restore process, run the test script:
+
+```bash
+bash test_restore_postgres.sh
+```
+
+Ensure that backup files used for testing comply with retention and format policies.
+
+## Configuration and Environment Variables
+
+Some scripts may require configuration through environment variables or configuration files. Please refer to individual script headers or the `docs/` directory for specific configuration details.
 
 ## Backup Strategy Compliance
 
 ### Retention Policies
-- Backup files used with restore scripts should adhere to the defined retention policies as per the updated infrastructure guidelines.
-- Ensure backups are retained for the required duration to meet data integrity and compliance mandates.
+
+- Backup files used with restore scripts should adhere to defined retention policies as per infrastructure guidelines.
+- Retain backups for the required duration to ensure data integrity and compliance.
 
 ### Testing Procedures
-- The restoration scripts include automated testing (see `test_restore_postgres.sh`) to validate restore operations across supported backup formats.
-- Testing ensures backup files are valid, restores are successful, and notifications are triggered appropriately.
-- Regularly run and update tests to comply with evolving backup and restoration policies.
+
+- Restore scripts include automated testing to validate backup integrity and successful restoration.
+- Regularly update and run tests to comply with evolving backup and restoration policies.
+
+## Troubleshooting
+
+- Review script output logs for errors.
+- Verify environment variables and configurations are correctly set.
+- Check backup file validity before restoration.
+- Consult the `runbook/` directory for operational procedures and troubleshooting steps.
 
 ## Contribution Guidelines
-We welcome contributions! Please submit a pull request or open an issue to discuss any enhancements or bug fixes.
+
+We welcome contributions! Please submit a pull request or open an issue to discuss enhancements or bug fixes.
 
 ## License
+
 This project is licensed under the MIT License. See the LICENSE file for details.
