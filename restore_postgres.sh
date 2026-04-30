@@ -20,13 +20,50 @@ notify() {
 
 # Function to print usage
 usage() {
-    echo "Usage: $0 <database_name> <backup_file> [--dry-run] [--host=<host>] [--port=<port>] [--user=<user>]"
+    echo "Usage: $0 <database_name> <backup_file> [--checksum=<checksum>] [--dry-run] [--host=<host>] [--port=<port>] [--user=<user>]"
     exit 1
+}
+
+# Function to validate the checksum of the backup file
+validate_checksum() {
+    local file=$1
+    local checksum_expected=$2
+    local checksum_type=${3:-sha256}
+
+    if [[ -z "$checksum_expected" ]]; then
+        # No checksum provided, skip validation
+        return
+    fi
+
+    local checksum_actual
+    case "$checksum_type" in
+        sha256)
+            if ! command -v sha256sum &> /dev/null; then
+                echo "Warning: sha256sum command not found. Skipping checksum validation." | tee -a "$LOG_FILE"
+                return
+            fi
+            checksum_actual=$(sha256sum "$file" | awk '{print $1}')
+            ;;
+        *)
+            echo "Error: Unsupported checksum type '$checksum_type'." | tee -a "$LOG_FILE"
+            exit 1
+            ;;
+    esac
+
+    if [[ "$checksum_actual" != "$checksum_expected" ]]; then
+        echo "Error: Checksum verification failed for file '$file'. Expected: $checksum_expected, Actual: $checksum_actual." | tee -a "$LOG_FILE"
+        exit 1
+    fi
+
+    notify "Checksum verification passed for file '$file'."
 }
 
 # Function to validate backup file format and integrity
 validate_backup_file() {
     local file=$1
+    local checksum=$2
+    local checksum_type=$3
+
     if [[ ! -f "$file" ]]; then
         echo "Error: Backup file '$file' does not exist." | tee -a "$LOG_FILE"
         exit 1
@@ -35,7 +72,9 @@ validate_backup_file() {
         echo "Error: Backup file '$file' is not a supported format (.sql, .dump, .gz, .zip)." | tee -a "$LOG_FILE"
         exit 1
     fi
-    # Optionally add checksum or file integrity checks here
+
+    # Validate checksum if provided
+    validate_checksum "$file" "$checksum" "$checksum_type"
 }
 
 # Function to restore a PostgreSQL database
@@ -80,10 +119,15 @@ DATABASE_NAME=$1
 BACKUP_FILE=$2
 shift 2
 
+CHECKSUM=""
 DRY_RUN=false
 
 while (( "$#" )); do
     case "$1" in
+        --checksum=*)
+            CHECKSUM="${1#*=}"
+            shift
+            ;;
         --dry-run)
             DRY_RUN=true
             shift
@@ -108,13 +152,18 @@ while (( "$#" )); do
 
 done
 
+# Use checksum from environment variable if not provided as parameter
+if [[ -z "$CHECKSUM" ]]; then
+    CHECKSUM=${BACKUP_CHECKSUM:-}
+fi
+
 # Validate inputs
 if [[ -z "$DATABASE_NAME" ]]; then
     echo "Error: DATABASE_NAME cannot be empty." | tee -a "$LOG_FILE"
     usage
 fi
 
-validate_backup_file "$BACKUP_FILE"
+validate_backup_file "$BACKUP_FILE" "$CHECKSUM" "sha256"
 
 # Start restoration
 {
