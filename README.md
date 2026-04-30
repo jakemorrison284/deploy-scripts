@@ -103,6 +103,8 @@ Some scripts require configuration through environment variables or configuratio
 
 Please check individual script headers or the `docs/` directory for specific environment variables and configuration details.
 
+For enhanced details on environment variables and direct links to runbooks, please see the [Enhanced README Additions](docs/enhanced_readme_additions.md) document.
+
 ## Backup Strategy Compliance
 
 ### Retention Policies
