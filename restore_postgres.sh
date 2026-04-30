@@ -7,6 +7,7 @@ PGPORT=${PGPORT:-5432}
 PGUSER=${PGUSER:-postgres}
 NOTIFY_SCRIPT=${NOTIFY_SCRIPT:-} # Path to a script for notifications (optional)
 VERBOSE=${VERBOSE:-false} # Verbose logging
+LOG_RETENTION_DAYS=${LOG_RETENTION_DAYS:-7} # Days to keep log files
 
 LOG_FILE="restore_log_$(date +%Y%m%d_%H%M%S).log"
 
@@ -14,7 +15,11 @@ LOG_FILE="restore_log_$(date +%Y%m%d_%H%M%S).log"
 log() {
     local level=$1
     local message=$2
-    echo "$(date '+%Y-%m-%d %H:%M:%S') [$level] $message" | tee -a "$LOG_FILE"
+    if [[ "$VERBOSE" == true || "$level" != "DEBUG" ]]; then
+        echo "$(date '+%Y-%m-%d %H:%M:%S') [$level] $message" | tee -a "$LOG_FILE"
+    else
+        echo "$(date '+%Y-%m-%d %H:%M:%S') [$level] $message" >> "$LOG_FILE"
+    fi
 }
 
 # Function to send notifications (if NOTIFY_SCRIPT is set)
@@ -28,8 +33,18 @@ notify() {
 
 # Function to print usage
 usage() {
-    echo "Usage: $0 <database_name> <backup_file> [--checksum=<checksum>] [--dry-run] [--host=<host>] [--port=<port>] [--user=<user>] [--verbose]"
+    echo "Usage: $0 <database_name> <backup_file> [--checksum=<checksum>] [--checksum-type=<type>] [--dry-run] [--host=<host>] [--port=<port>] [--user=<user>] [--verbose]"
     exit 1
+}
+
+# Function to clean old log files
+clean_old_logs() {
+    find . -maxdepth 1 -type f -name 'restore_log_*.log' -mtime +$LOG_RETENTION_DAYS -exec rm -f {} +
+    if [[ $? -eq 0 ]]; then
+        log "INFO" "Old log files older than $LOG_RETENTION_DAYS days have been removed."
+    else
+        log "WARN" "Failed to clean old log files."
+    fi
 }
 
 # Function to validate the checksum of the backup file
@@ -52,6 +67,20 @@ validate_checksum() {
                 exit 1
             fi
             checksum_actual=$(sha256sum "$file" | awk '{print $1}')
+            ;;
+        sha1)
+            if ! command -v sha1sum &> /dev/null; then
+                log "ERROR" "sha1sum command not found. Cannot validate checksum."
+                exit 1
+            fi
+            checksum_actual=$(sha1sum "$file" | awk '{print $1}')
+            ;;
+        md5)
+            if ! command -v md5sum &> /dev/null; then
+                log "ERROR" "md5sum command not found. Cannot validate checksum."
+                exit 1
+            fi
+            checksum_actual=$(md5sum "$file" | awk '{print $1}')
             ;;
         *)
             log "ERROR" "Unsupported checksum type '$checksum_type'."
@@ -116,14 +145,29 @@ restore_database() {
 
     # Handle compressed backups
     if [[ "$backup_file" =~ \.gz$ ]]; then
-        gunzip -c "$backup_file" | psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$db_name" 2>> "$LOG_FILE"
-        local status=${PIPESTATUS[1]}
+        if [[ "$VERBOSE" == true ]]; then
+            gunzip -c "$backup_file" | psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$db_name" 2>&1 | tee -a "$LOG_FILE"
+            local status=${PIPESTATUS[1]}
+        else
+            gunzip -c "$backup_file" | psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$db_name" 2>> "$LOG_FILE"
+            local status=${PIPESTATUS[1]}
+        fi
     elif [[ "$backup_file" =~ \.zip$ ]]; then
-        unzip -p "$backup_file" | psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$db_name" 2>> "$LOG_FILE"
-        local status=${PIPESTATUS[1]}
+        if [[ "$VERBOSE" == true ]]; then
+            unzip -p "$backup_file" | psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$db_name" 2>&1 | tee -a "$LOG_FILE"
+            local status=${PIPESTATUS[1]}
+        else
+            unzip -p "$backup_file" | psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$db_name" 2>> "$LOG_FILE"
+            local status=${PIPESTATUS[1]}
+        fi
     else
-        psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$db_name" -f "$backup_file" 2>> "$LOG_FILE"
-        local status=$?
+        if [[ "$VERBOSE" == true ]]; then
+            psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$db_name" -f "$backup_file" 2>&1 | tee -a "$LOG_FILE"
+            local status=${PIPESTATUS[0]}
+        else
+            psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$db_name" -f "$backup_file" 2>> "$LOG_FILE"
+            local status=$?
+        fi
     fi
 
     if [[ $status -ne 0 ]]; then
@@ -146,12 +190,17 @@ BACKUP_FILE=$2
 shift 2
 
 CHECKSUM=""
+CHECKSUM_TYPE="sha256"
 DRY_RUN=false
 
 while (( "$#" )); do
     case "$1" in
         --checksum=*)
             CHECKSUM="${1#*=}"
+            shift
+            ;;
+        --checksum-type=*)
+            CHECKSUM_TYPE="${1#*=}"
             shift
             ;;
         --dry-run)
@@ -193,7 +242,9 @@ if [[ -z "$DATABASE_NAME" ]]; then
     usage
 fi
 
-validate_backup_file "$BACKUP_FILE" "$CHECKSUM" "sha256"
+clean_old_logs
+
+validate_backup_file "$BACKUP_FILE" "$CHECKSUM" "$CHECKSUM_TYPE"
 
 # Start restoration
 {
