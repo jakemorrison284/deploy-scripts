@@ -68,7 +68,7 @@ validate_checksum() {
                 exit 1
             fi
             checksum_actual=$(sha256sum "$file" | awk '{print $1}')
-            ;;
+            ;; 
         *)
             log "ERROR" "Unsupported checksum type '$checksum_type'."
             exit 1
