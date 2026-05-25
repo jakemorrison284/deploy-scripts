@@ -1,3 +1,3 @@
-Release notes for version 1.0.0
+Release notes for version 1.0.1
 
-Initial release of the deploy-scripts repository.
+Update for the deploy-scripts repository.
