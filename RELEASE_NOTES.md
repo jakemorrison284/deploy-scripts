@@ -1,1 +1,3 @@
-Release notes for version 1.0.0
+# Release v1.0.0
+
+This is the first release of the deploy-scripts.
