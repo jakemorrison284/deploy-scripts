@@ -193,3 +193,34 @@ We welcome contributions! Please submit pull requests or open issues for enhance
 ## License
 
 This project is licensed under the MIT License. See the LICENSE file for details.
+
+## Updated Deployment Steps
+
+### Clear Deployment Steps
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/jakemorrison284/deploy-scripts.git
+   cd deploy-scripts
+   ```
+
+2. **Install prerequisites:**
+   Ensure you have Git, Node.js, and Docker installed.
+
+3. **Set environment variables:**
+   ```bash
+   export DEPLOY_ENV=production
+   export PG_BACKUP_PATH=/var/backups/postgres
+   export FAILOVER_CONFIG=/etc/failover/config.yaml
+   ```
+
+4. **Run the deployment script:**
+   ```bash
+   bash deploy.sh --env production
+   ```
+
+5. **Check output for confirmation:**
+   Ensure the deployment was successful by reviewing the output message.
+
+6. **Follow up with tests:**
+   Validate the deployment by running tests as needed.
