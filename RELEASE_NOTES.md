@@ -1,7 +1,8 @@
-# Release 0.0.13
+# Release 1.0.0
 
-- New features and improvements.
-- Bug fixes.
+- Major updates and enhancements.
+- Improved deployment process.
+- Fixed critical bugs.
 
 Previous notes:
 
