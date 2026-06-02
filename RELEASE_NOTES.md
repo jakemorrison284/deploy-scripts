@@ -1,8 +1,7 @@
-# Release v1.0.0
+# Release 0.0.13
 
-- Initial release with core functionality.
-- Added deployment scripts for NovaPay.
-- Improved documentation and examples.
+- New features and improvements.
+- Bug fixes.
 
 Previous notes:
 
