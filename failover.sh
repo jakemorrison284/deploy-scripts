@@ -16,10 +16,10 @@ send_notification() {
     
     # Define your notification channel/service
     local notification_channel="$NOTIFICATION_CHANNEL"  # Use environment variable
-
+    
     # Construct the notification message
     local full_message="[NOTIFICATION] [$timestamp] Rollback Status: $status - $message"
-
+    
     # Using a hypothetical command to send notifications
     if ! send_to_channel "$notification_channel" "$full_message"; then
         echo "Error: Failed to send notification for status: $status. Attempting to retry..."
@@ -77,4 +77,54 @@ else
     exit 1
 fi
 
-echo "Rollback completed for $SERVICE."
+# Enhanced error handling, logging, and safety checks
+
+# Define log file and backup directory
+LOG_FILE="/var/log/failover.log"
+BACKUP_DIR="/backup/failover"
+
+# Create backup directory if it doesn't exist
+mkdir -p $BACKUP_DIR
+
+# Function to log messages with timestamps
+log_message() {
+  echo "$(date +'%Y-%m-%d %H:%M:%S') - $1" | tee -a $LOG_FILE
+}
+
+# Function to handle errors
+handle_error() {
+  local error_message=$1
+  local exit_code=$2
+  log_message "ERROR: $error_message"
+  exit $exit_code
+}
+
+# Check if user wants to proceed with rollback
+read -p "Are you sure you want to perform a rollback? (y/n) " -n 1 -r
+if [[ $REPLY != "y" ]]; then
+  log_message "Rollback cancelled by user."
+  exit 0
+fi
+
+# Backup current deployment configuration
+log_message "Creating backup of current deployment configuration..."
+if ! cp -r /path/to/deployment/config $BACKUP_DIR; then
+  handle_error "Failed to create backup of deployment configuration." 1
+fi
+
+# Perform rollback
+log_message "Starting rollback process..."
+if ! kubectl rollout undo deployment/my-deployment; then
+  handle_error "Rollback failed. Check logs for details." 1
+fi
+
+# Test if the previous stable version is functioning correctly
+log_message "Testing previous stable version..."
+if ! kubectl rollout status deployment/my-deployment; then
+  handle_error "Previous stable version is not functioning correctly." 1
+fi
+
+# Notify user of successful rollback
+log_message "Rollback completed successfully."
+
+exit 0
